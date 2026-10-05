@@ -1929,6 +1929,50 @@ body{
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
 }
 
+.past-roster-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--l);
+  border-radius:8px;
+  background:#fff;
+}
+
+.past-roster-card .past-roster-logo{
+  width:100%;
+  height:150px;
+  aspect-ratio:auto;
+  object-fit:contain;
+  background:transparent;
+}
+
+.past-roster-card h3{
+  margin:4px 0;
+  font-size:18px;
+}
+
+.past-roster-card p{
+  margin:3px 0;
+}
+
+.past-roster-card .profile-number{
+  margin-top:8px;
+}
+
+.past-roster-card .past-roster-statline{
+  color:var(--m);
+  font-size:13px;
+}
+
+.past-roster-link{
+  margin-top:auto;
+  padding-top:8px;
+  color:var(--c);
+  font-weight:700;
+}
+
 .alumni-card{
   min-width:0;
 }
@@ -1979,61 +2023,17 @@ body{
   border-bottom:1px solid var(--l);
 }
 
-.alumni-team-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  min-width:0;
-  max-width:100%;
-  vertical-align:middle;
-}
-
-.alumni-team-badge img{
-  width:28px;
-  height:28px;
-  flex:0 0 28px;
-  object-fit:contain;
-}
-
-.alumni-team-badge>span{
-  overflow-wrap:anywhere;
-}
-
-.alumni-draft-logo{
+.alumni-draft>img{
   width:66px;
   height:66px;
   flex:0 0 66px;
-  justify-content:center;
-}
-
-.alumni-draft-logo img{
-  width:66px;
-  height:66px;
-  flex-basis:66px;
   object-fit:contain;
-}
-
-.alumni-team-list{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 12px;
-}
-
-.alumni-debut{
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:4px 8px;
 }
 
 .alumni-draft span,
 .alumni-draft strong,
 .alumni-draft small{
   display:block;
-}
-
-.alumni-draft .alumni-team-badge{
-  display:inline-flex;
 }
 
 .alumni-draft span,

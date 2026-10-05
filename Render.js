@@ -233,6 +233,37 @@ function filterRoster(filter,button){
   document.getElementById("rosterCount").textContent=`Showing ${shown} of ${cards.length} players`;
 }
 
+function historicalRosterCard(player,season){
+  const profileStats=PLAYER_CAREER_STATS.players[player.id]?.statsBySeason?.[season]?.seasonStats;
+  const stats=player.stats||profileStats;
+  const hitting=stats?.hittingStats;
+  const pitching=stats?.pitchingStats;
+  const statLine=hitting
+    ? `<p class="past-roster-statline">AVG ${escapeHtml(hitting.avg||"—")} · ${escapeHtml(hitting.hits||"—")} H · ${escapeHtml(hitting.homeRuns||"—")} HR</p>`
+    : pitching
+      ? `<p class="past-roster-statline">ERA ${escapeHtml(pitching.earnedRunAverage||"—")} · ${escapeHtml(pitching.wins||"—")} W · ${escapeHtml(pitching.strikeouts||"—")} K</p>`
+      : `<p class="past-roster-statline">Individual stats unavailable</p>`;
+  const playerUrl=`Player.html?id=${encodeURIComponent(player.id)}&season=${encodeURIComponent(season)}`;
+  return `<a class="card past-roster-card" href="${playerUrl}">
+    <img class="past-roster-logo" src="${IU_LOGO}" alt="Indiana University logo" loading="lazy">
+    <span class="profile-number">#${escapeHtml(player.number||"—")}</span>
+    <h3>${escapeHtml(player.name)}</h3>
+    <p>${escapeHtml(player.position||"Baseball")} · ${escapeHtml(player.classYear||"")}</p>
+    ${statLine}
+    <span class="past-roster-link">View player stats &rarr;</span>
+  </a>`;
+}
+
+function historicalRosterView(season){
+  const roster=PAST_ROSTERS[season];
+  if(!roster)throw new Error(`Historical roster data is missing for ${season}.`);
+  return `<div class="wrap">
+    <div class="page-heading"><div><span class="schedule-eyebrow">Indiana Hoosiers Baseball</span><h2>${escapeHtml(season)} Roster</h2></div>${seasonControl(season,["2026-27",...Object.keys(PAST_ROSTERS).sort((a,b)=>Number(b)-Number(a))])}</div>
+    <p class="schedule-count">Showing ${roster.players.length} players · Player cards use the IU logo.${roster.statsAvailableFromOfficialSeasonTable?" Select a player to view available season stats.":" Official individual season statistics are not available for this roster year."}</p>
+    <div class="grid alumni-grid past-roster-grid">${roster.players.map(player=>historicalRosterCard(player,season)).join("")}</div>
+  </div>`;
+}
+
 function player(p){
   const [num,name,pos,yr,ht,wt,bt,home,school,prev,id]=p;
   const ph=getPlayerPhoto(id);
@@ -575,6 +606,41 @@ function seasonControl(selected,seasons=SUPPORTED_SEASONS){
 
 let draftSort={key:"year",descending:true};
 
+function draftTeamName(pick){
+  if(pick.draftOrganization==="Los Angeles (AL)"&&pick.year<=1996)return "California Angels";
+  if(pick.draftOrganization==="Texas"&&pick.year===1968)return "Washington Senators";
+  if(pick.draftOrganization==="Cleveland"&&pick.year<2022)return "Cleveland Indians";
+  if(pick.draftOrganization==="Miami"&&pick.year<2012)return "Florida Marlins";
+  if(pick.draftOrganization==="Tampa Bay"&&pick.year<2008)return "Tampa Bay Devil Rays";
+  if(pick.draftOrganization==="Washington"&&pick.year<2005)return "Montreal Expos";
+  return pick.draftTeam;
+}
+
+function draftTeamLogo(pick){
+  const organization=pick.draftOrganization;
+  if(organization==="Kansas City"&&pick.year===1966)return "images/mlb/historical/kansas-city-athletics.png";
+  if(organization==="Los Angeles (AL)"&&pick.year<=1970)return "images/mlb/historical/california-angels-1966-1970.svg";
+  if(organization==="Los Angeles (AL)"&&pick.year<=1988)return "images/mlb/historical/california-angels-1972-1988.svg";
+  if(organization==="Texas"&&pick.year===1968)return "images/mlb/historical/washington-senators-1968-1971.svg";
+  if(organization==="Cleveland"&&pick.year<2022)return "images/mlb/historical/cleveland-indians-cap.svg";
+  if(organization==="Miami"&&pick.year<2012)return "images/mlb/historical/florida-marlins.png";
+  if(organization==="Tampa Bay"&&pick.year<2008)return "images/mlb/historical/tampa-bay-devil-rays-1998-2000.png";
+  if(organization==="Washington"&&pick.year<2005)return "images/mlb/historical/montreal-expos.svg";
+  return `images/mlb/${pick.draftTeamId}.svg`;
+}
+
+function draftCurrentLevel(pick){
+  const assigned=CURRENT_PRO_HOOSIERS.find(player=>player.name===pick.name);
+  if(assigned)return assigned.level;
+  if(pick.notes.some(note=>note.toLowerCase().includes("did not sign")))return "Did Not Sign";
+  const alumniStatus=MLB_ALUMNI_DETAILS[pick.name]?.status;
+  if(alumniStatus==="Retired"||alumniStatus==="Free Agent")return alumniStatus;
+  if(alumniStatus==="Active MLB player")return "MLB";
+  if(alumniStatus==="Former MLB player")return "Former MLB player";
+  if(alumniStatus==="Minor Leagues")return "Minor Leagues";
+  return "Unverified";
+}
+
 function draftHistoryRows(){
   const history=[...MLB_DRAFT_HISTORY];
   const {key,descending}=draftSort;
@@ -583,7 +649,7 @@ function draftHistoryRows(){
     if(key==="year")comparison=a.year-b.year;
     else if(key==="round")comparison=a.roundOrder-b.roundOrder;
     else if(key==="position")comparison=a.positionName.localeCompare(b.positionName);
-    else comparison=a.draftTeam.localeCompare(b.draftTeam);
+    else comparison=draftTeamName(a).localeCompare(draftTeamName(b));
     if(comparison===0)comparison=a.pick-b.pick;
     if(comparison===0)comparison=a.name.localeCompare(b.name);
     return comparison*(descending?-1:1);
@@ -592,10 +658,10 @@ function draftHistoryRows(){
     <td>${pick.year}</td>
     <td>${escapeHtml(pick.name)}${pick.notes.length?`<small class="draft-note">${escapeHtml(pick.notes.join(" · "))}</small>`:""}</td>
     <td>${escapeHtml(pick.positionName)}</td>
-    <td><span class="draft-team"><img src="images/mlb/${pick.draftTeamId}.svg" alt="" loading="lazy"><span>${escapeHtml(pick.draftTeam)}</span></span></td>
+    <td><span class="draft-team"><img src="${draftTeamLogo(pick)}" alt="" loading="lazy"><span>${escapeHtml(draftTeamName(pick))}</span></span></td>
     <td>${escapeHtml(pick.round)}</td>
     <td>${pick.pick}</td>
-    <td>${escapeHtml(CURRENT_PRO_HOOSIERS.find(player=>player.name===pick.name)?.level||"—")}</td>
+    <td>${escapeHtml(draftCurrentLevel(pick))}</td>
   </tr>`).join("");
 }
 
@@ -625,22 +691,24 @@ function alumniCard(alumnus){
   const details=MLB_ALUMNI_DETAILS[alumnus.name];
   if(!details)throw new Error(`Alumni details are missing for ${alumnus.name}.`);
   const pick=MLB_DRAFT_HISTORY.find(row=>row.name===alumnus.name&&!row.notes.includes("Did not sign"));
-  const currentPro=CURRENT_PRO_HOOSIERS.find(player=>player.name===alumnus.name&&player.level==="MLB");
-  const draftTeam=pick?.draftTeam||alumnus.draftTeam;
+  const proAssignment=CURRENT_PRO_HOOSIERS.find(player=>player.name===alumnus.name);
+  const currentPro=proAssignment?.level==="MLB"?proAssignment:null;
+  const draftTeam=pick?draftTeamName(pick):alumnus.draftTeam;
   const draftTeamId=pick?.draftTeamId||alumnus.draftTeamId;
   const draftYear=pick?.year||alumnus.draftYear;
   const draftRound=pick?.round||alumnus.draftRound;
   const draftPick=pick?.pick||alumnus.draftPick;
   const draftPosition=pick?.positionName||"—";
-  const draftDetails=draftTeam?`<div class="alumni-draft"><img src="images/mlb/${draftTeamId}.svg" alt="${escapeHtml(draftTeam)} logo" loading="lazy" onerror="this.hidden=true"><div><span>Drafted by</span><strong>${escapeHtml(draftTeam)}</strong><small>${escapeHtml(draftYear)} · Round ${escapeHtml(draftRound)} · Pick ${escapeHtml(draftPick)}</small></div></div>`:"";
+  const draftLogo=pick?draftTeamLogo(pick):`images/mlb/${draftTeamId}.svg`;
+  const draftDetails=draftTeam?`<div class="alumni-draft"><img src="${draftLogo}" alt="${escapeHtml(draftTeam)} logo" loading="lazy" onerror="this.hidden=true"><div><span>Drafted by</span><strong>${escapeHtml(draftTeam)}</strong><small>${escapeHtml(draftYear)} · Round ${escapeHtml(draftRound)} · Pick ${escapeHtml(draftPick)}</small></div></div>`:"";
   const years=details.iuYears?`<p>Indiana: ${escapeHtml(details.iuYears)}</p>`:"";
   const pastTeams=details.pastTeams.length?`<dt>Past MLB teams</dt><dd>${details.pastTeams.map(escapeHtml).join(" · ")}</dd>`:"";
   const debutDate=new Date(`${details.debutDate}T12:00:00`).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
   const latestTeam=currentPro?.team||details.currentTeam;
-  const teamLabel=currentPro?"Current team":"Final MLB team";
+  const teamLabel=currentPro?"Current MLB team":proAssignment?.level==="Retired"?"Final MLB team":"Current / latest club";
   return `<article class="panel alumni-card${currentPro?" current-pro-card":""}">
     ${draftDetails}<span class="profile-number">${escapeHtml(details.position)}</span><h3>${escapeHtml(alumnus.name)}</h3>${years}
-    <dl><dt>MLB status</dt><dd>${escapeHtml(details.status)}</dd><dt>${teamLabel}</dt><dd>${escapeHtml(latestTeam)}</dd>${pastTeams}<dt>MLB debut</dt><dd>${escapeHtml(debutDate)} · ${escapeHtml(details.debutTeam)}</dd><dt>IU draft position</dt><dd>${escapeHtml(draftPosition)}</dd></dl>
+    <dl><dt>Pro status / level</dt><dd>${escapeHtml(proAssignment?.level||details.status)}</dd><dt>${teamLabel}</dt><dd>${escapeHtml(latestTeam)}</dd>${pastTeams}<dt>MLB debut</dt><dd>${escapeHtml(debutDate)} · ${escapeHtml(details.debutTeam)}</dd><dt>IU draft position</dt><dd>${escapeHtml(draftPosition)}</dd></dl>
   </article>`;
 }
 
@@ -820,46 +888,63 @@ const VIEWS = {
       <section class="draft-history-section">
         <div class="section-heading"><h2>IU Draft Picks</h2></div>
         <div class="draft-controls no-print"><label for="draftSort">Sort by</label><select id="draftSort" onchange="sortDraftHistory(this.value)"><option value="year">Year</option><option value="team">Team</option><option value="round">Round</option><option value="position">Position</option></select><button id="draftSortOrder" type="button" onclick="toggleDraftSort()" aria-label="Sort ascending">Descending</button></div>
-        <div class="table-scroll draft-table-scroll"><table class="draft-table"><thead><tr><th>Year</th><th>Player</th><th>Draft position</th><th>Drafted by</th><th>Round</th><th>Pick</th><th>Current level</th></tr></thead><tbody id="draftHistoryBody">${draftHistoryRows()}</tbody></table></div>
+        <div class="table-scroll draft-table-scroll"><table class="draft-table"><thead><tr><th>Year</th><th>Player</th><th>Draft position</th><th>Drafted by</th><th>Round</th><th>Pick</th><th>Current level / status</th></tr></thead><tbody id="draftHistoryBody">${draftHistoryRows()}</tbody></table></div>
       </section>
     </div>`;
   },
   player(){
-    const id=new URLSearchParams(location.search).get("id")||"";
-    const p=ROSTER.find(player=>player[10]===id);
-    if(!p)return `<div class="wrap"><h2>Player not found</h2><a href="Roster.html">Back to roster</a></div>`;
-    const [num,name,pos,year,height,weight,batsThrows,hometown,school,previousSchool]=p;
-    const photo=getPlayerPhoto(id)||IU_LOGO;
+    const params=new URLSearchParams(location.search);
+    const id=params.get("id")||"";
+    const requestedSeason=params.get("season");
+    const currentPlayer=ROSTER.find(player=>player[10]===id);
+    const historicPlayer=Object.values(PAST_ROSTERS).map(roster=>roster.players.find(player=>player.id===id)).find(Boolean);
+    if(!currentPlayer&&!historicPlayer)return `<div class="wrap"><h2>Player not found</h2><a href="Roster.html">Back to roster</a></div>`;
     const officialProfile=PLAYER_CAREER_STATS.players[id];
-    const careerSeasons=Object.keys(officialProfile?.statsBySeason||{}).sort((a,b)=>Number(b)-Number(a));
-    const seasonOptions=["2027",...careerSeasons];
-    const requestedSeason=new URLSearchParams(location.search).get("season");
+    const rosterSeasons=Object.keys(PAST_ROSTERS).filter(season=>PAST_ROSTERS[season].players.some(player=>player.id===id));
+    const careerSeasons=Object.keys(officialProfile?.statsBySeason||{});
+    const seasonOptions=["2027",...new Set([...careerSeasons,...rosterSeasons])].sort((a,b)=>a==="2027"?-1:b==="2027"?1:Number(b)-Number(a));
     const season=seasonOptions.includes(requestedSeason)?requestedSeason:"2027";
-    const seasonRecord=officialProfile?.statsBySeason?.[season];
-    const seasonStats=seasonRecord?.seasonStats;
+    const playerForSeason=PAST_ROSTERS[season]?.players.find(player=>player.id===id)||historicPlayer;
+    const currentRecord=officialProfile?.statsBySeason?.[season];
+    const seasonStats=currentRecord?.seasonStats||playerForSeason?.stats;
+    const seasonRecord=currentRecord||playerForSeason?.stats?{
+      position:currentRecord?.position||playerForSeason?.position,
+      gp:currentRecord?.gp||seasonStats?.hittingStats?.games||"",
+      gs:currentRecord?.gs||seasonStats?.hittingStats?.gamesStarted||"",
+      seasonStats
+    }:null;
     const categories=[
       ["Hitting",seasonStats?.hittingStats],
       ["Pitching",seasonStats?.pitchingStats],
       ["Fielding",seasonStats?.fieldingStats]
     ];
     const categoryTables=categories.map(([title,values])=>statDetailTable(title,values)).filter(Boolean).join("");
-    const seasonHistory=careerSeasons.length?`<div class="table-scroll"><table class="mini-table"><thead><tr><th>Season</th><th>Games</th><th>Starts</th><th>AVG</th><th>ERA</th></tr></thead><tbody>${careerSeasons.map(seasonYear=>{
-      const record=officialProfile.statsBySeason[seasonYear];
-      const batting=record.seasonStats?.hittingStats;
-      const pitching=record.seasonStats?.pitchingStats;
-      return `<tr><th>${escapeHtml(seasonYear)}</th><td>${escapeHtml(record.gp||"—")}</td><td>${escapeHtml(record.gs||"—")}</td><td>${escapeHtml(batting?.avg||"—")}</td><td>${escapeHtml(pitching?.earnedRunAverage||"—")}</td></tr>`;
+    const seasonHistory=rosterSeasons.length||careerSeasons.length?`<div class="table-scroll"><table class="mini-table"><thead><tr><th>Season</th><th>Games</th><th>Starts</th><th>AVG</th><th>ERA</th></tr></thead><tbody>${seasonOptions.filter(seasonYear=>seasonYear!=="2027"&&(rosterSeasons.includes(seasonYear)||careerSeasons.includes(seasonYear))).map(seasonYear=>{
+      const record=officialProfile?.statsBySeason?.[seasonYear];
+      const rosterRecord=PAST_ROSTERS[seasonYear]?.players.find(player=>player.id===id);
+      const batting=record?.seasonStats?.hittingStats||rosterRecord?.stats?.hittingStats;
+      const pitching=record?.seasonStats?.pitchingStats||rosterRecord?.stats?.pitchingStats;
+      return `<tr><th><a href="Player.html?id=${encodeURIComponent(id)}&season=${encodeURIComponent(seasonYear)}">${escapeHtml(seasonYear)}</a></th><td>${escapeHtml(record?.gp||batting?.games||"—")}</td><td>${escapeHtml(record?.gs||batting?.gamesStarted||"—")}</td><td>${escapeHtml(batting?.avg||"—")}</td><td>${escapeHtml(pitching?.earnedRunAverage||"—")}</td></tr>`;
     }).join("")}</tbody></table></div>`:`<p class="empty-state">No prior season statistics are available for this player.</p>`;
+    const displayPlayer=PAST_ROSTERS[season]?.players.find(player=>player.id===id)||historicPlayer;
+    const [num,name,pos,year,height,weight,batsThrows,hometown,school,previousSchool]=currentPlayer&&season==="2027"
+      ?currentPlayer
+      :[displayPlayer.number,displayPlayer.name,displayPlayer.position,displayPlayer.classYear,displayPlayer.height,displayPlayer.weight,displayPlayer.batsThrows,displayPlayer.hometown,displayPlayer.school,""];
+    const photo=season==="2027"&&currentPlayer?getPlayerPhoto(id)||IU_LOGO:IU_LOGO;
+    const photoAlt=season==="2027"&&currentPlayer?name:"Indiana University logo";
+    const weightText=String(weight||"—").endsWith("lbs")?weight:`${weight||"—"} lbs`;
+    const rosterLink=season==="2027"?"Roster.html":`Roster.html?season=${encodeURIComponent(season)}`;
     return `<div class="wrap">
-      <a class="back-link" href="Roster.html">&larr; Back to roster</a>
+      <a class="back-link" href="${rosterLink}">&larr; Back to ${season==="2027"?"roster":`${escapeHtml(season)} roster`}</a>
       <div class="player-profile">
-        <img class="profile-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(name)}" onerror="useIuFallback(this)">
+        <img class="profile-photo" src="${escapeHtml(photo)}" alt="${escapeHtml(photoAlt)}" onerror="useIuFallback(this)">
         <section class="panel profile-bio"><span class="profile-number">#${escapeHtml(num)}</span><h2>${escapeHtml(name)}</h2><p>${escapeHtml(pos)} · ${escapeHtml(year)}</p>
-          <dl><dt>Height / Weight</dt><dd>${escapeHtml(height)} / ${escapeHtml(weight)} lbs</dd><dt>Bats / Throws</dt><dd>${escapeHtml(batsThrows)}</dd><dt>Hometown</dt><dd>${escapeHtml(hometown)}</dd><dt>High School</dt><dd>${escapeHtml(school||"—")}</dd><dt>Previous School</dt><dd>${escapeHtml(previousSchool||"—")}</dd></dl>
+          <dl><dt>Height / Weight</dt><dd>${escapeHtml(height||"—")} / ${escapeHtml(weightText)}</dd><dt>Bats / Throws</dt><dd>${escapeHtml(batsThrows||"—")}</dd><dt>Hometown</dt><dd>${escapeHtml(hometown||"—")}</dd><dt>High School</dt><dd>${escapeHtml(school||"—")}</dd><dt>Previous School</dt><dd>${escapeHtml(previousSchool||"—")}</dd></dl>
         </section>
       </div>
       ${officialProfile?.bio&&officialProfile.bio.length>50?`<section class="panel player-bio-notes"><h2>Player Bio</h2><div class="player-bio-copy">${escapeHtml(officialProfile.bio)}</div></section>`:""}
       <section class="panel profile-stats"><div class="page-heading"><h2>${escapeHtml(season)} Season Stats</h2>${seasonControl(season,seasonOptions)}</div>
-        ${seasonRecord?`<p class="date">${escapeHtml(seasonRecord.position||pos)} · ${escapeHtml(seasonRecord.gp||"—")} games · ${escapeHtml(seasonRecord.gs||"—")} starts</p>`:`<p class="empty-state">2027 stats have not been posted yet. Select a previous season to view stats.</p>`}
+        ${seasonRecord?`<p class="date">${escapeHtml(seasonRecord.position||pos)} · ${escapeHtml(seasonRecord.gp||"—")} games · ${escapeHtml(seasonRecord.gs||"—")} starts</p>`:`<p class="empty-state">${season==="2027"?"2027 stats have not been posted yet. Select a previous season to view stats.":`Individual stats are not available for ${escapeHtml(season)}.`}</p>`}
         <div class="player-season-stats">${categoryTables||""}</div>
       </section>
       <section class="panel"><h2>Season-by-Season</h2>${seasonHistory}</section>
@@ -884,8 +969,8 @@ const VIEWS = {
   },
   roster(){
     const season=new URLSearchParams(location.search).get("season")||"2026-27";
-    if(season!=="2026-27")return `<div class="wrap"><div class="page-heading"><h2>Roster</h2>${seasonControl(season)}</div><p class="empty-state">Roster data for ${escapeHtml(season)} has not been added.</p></div>`;
-    return `<div class="wrap"><div class="page-heading"><h2>2027 Baseball Roster</h2><div class="schedule-title-actions">${seasonControl(season)}${printButton("roster")}</div></div>
+    if(season!=="2026-27")return PAST_ROSTERS[season]?historicalRosterView(season):`<div class="wrap"><div class="page-heading"><h2>Roster</h2>${seasonControl(season,["2026-27",...Object.keys(PAST_ROSTERS).sort((a,b)=>Number(b)-Number(a))])}</div><p class="empty-state">Roster data for ${escapeHtml(season)} has not been added.</p></div>`;
+    return `<div class="wrap"><div class="page-heading"><h2>2027 Baseball Roster</h2><div class="schedule-title-actions">${seasonControl(season,["2026-27",...Object.keys(PAST_ROSTERS).sort((a,b)=>Number(b)-Number(a))])}${printButton("roster")}</div></div>
     <div class="roster-filters" role="group" aria-label="Filter roster">${[["all","All"],["pitchers","Pitchers"],["catchers","Catchers"],["infield","Infield"],["outfield","Outfield"]].map(([filter,label],index)=>`<button type="button" class="${index===0?"on":""}" onclick="filterRoster('${filter}',this)">${label}</button>`).join("")}</div>
     <p id="rosterCount" class="schedule-count">Showing ${ROSTER.length} of ${ROSTER.length} players</p>
     <div class="grid roster-grid">${ROSTER.map(player).join("")}</div>

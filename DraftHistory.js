@@ -21,11 +21,11 @@ const MLB_DRAFT_HISTORY = [
     "name": "Don Lohse",
     "position": "RHP",
     "positionName": "Right-handed pitcher",
-    "draftTeam": "Athletics",
+    "draftTeam": "Kansas City Athletics",
     "draftTeamId": 133,
-    "draftOrganization": "Oakland",
+    "draftOrganization": "Kansas City",
     "notes": [
-      "January draft"
+      "January secondary draft"
     ]
   },
   {
@@ -33,10 +33,10 @@ const MLB_DRAFT_HISTORY = [
     "round": "1",
     "roundOrder": 1.0,
     "pick": 8,
-    "name": "Jim DeNeff",
+    "name": "Jim DeNef",
     "position": "SS",
     "positionName": "Shortstop",
-    "draftTeam": "Los Angeles Angels",
+    "draftTeam": "California Angels",
     "draftTeamId": 108,
     "draftOrganization": "Los Angeles (AL)",
     "notes": []
@@ -49,7 +49,7 @@ const MLB_DRAFT_HISTORY = [
     "name": "Jim Suskiewich",
     "position": "LHP",
     "positionName": "Left-handed pitcher",
-    "draftTeam": "Los Angeles Angels",
+    "draftTeam": "California Angels",
     "draftTeamId": 108,
     "draftOrganization": "Los Angeles (AL)",
     "notes": [
@@ -64,7 +64,7 @@ const MLB_DRAFT_HISTORY = [
     "name": "Gary Sargent",
     "position": "LHP",
     "positionName": "Left-handed pitcher",
-    "draftTeam": "Texas Rangers",
+    "draftTeam": "Washington Senators",
     "draftTeamId": 140,
     "draftOrganization": "Texas",
     "notes": []
@@ -90,7 +90,7 @@ const MLB_DRAFT_HISTORY = [
     "name": "Norman Werd",
     "position": "LHP",
     "positionName": "Left-handed pitcher",
-    "draftTeam": "Cleveland Guardians",
+    "draftTeam": "Cleveland Indians",
     "draftTeamId": 114,
     "draftOrganization": "Cleveland",
     "notes": []
@@ -1549,7 +1549,7 @@ const MLB_DRAFT_HISTORY = [
   },
   {
     "year": 2024,
-    "round": "4-C",
+    "round": "4 / Comp C",
     "roundOrder": 4.0,
     "pick": 136,
     "name": "Nick Mitchell",
