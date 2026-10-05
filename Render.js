@@ -6,6 +6,31 @@ function darkModeButton(){
   return `<button class="theme-toggle theme-toggle-footer" type="button" aria-label="Toggle dark mode" title="Toggle dark mode" aria-pressed="false" onclick="toggleDarkMode()"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 18h6m-5 3h4m-7-7a7 7 0 1 1 10 0c-1.2 1.1-1.8 2.1-2 4h-6c-.2-1.9-.8-2.9-2-4Z"/></svg></button>`;
 }
 
+function showLoadingScreen(){
+  const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  try{
+    if(sessionStorage.getItem("iu-baseball-loader-seen")==="true")return async()=>{};
+    sessionStorage.setItem("iu-baseball-loader-seen","true");
+  }catch(error){
+    console.warn("Could not save loading-screen settings.",error);
+  }
+  const startedAt=performance.now();
+  const screen=document.createElement("div");
+  screen.className="loading-screen";
+  screen.setAttribute("role","status");
+  screen.setAttribute("aria-label","Loading Indiana Hoosiers Baseball");
+  screen.innerHTML='<div class="loading-content"><div class="loading-mark"><img src="images/iu-altius-logo.jpg" alt=""></div><p class="loading-team">INDIANA</p><p class="loading-sport">BASEBALL</p><div class="loading-progress" aria-hidden="true"><span></span></div></div>';
+  document.body.prepend(screen);
+  return async()=>{
+    const remaining=reducedMotion?0:Math.max(0,1250-(performance.now()-startedAt));
+    if(remaining)await new Promise(resolve=>setTimeout(resolve,remaining));
+    screen.classList.add("is-leaving");
+    screen.setAttribute("aria-hidden","true");
+    if(!reducedMotion)await new Promise(resolve=>setTimeout(resolve,450));
+    screen.remove();
+  };
+}
+
 function setupSharedNavigation(){
   const nav=document.querySelector(".sub");
   if(nav){
@@ -26,7 +51,7 @@ function setupSharedNavigation(){
 }
 
 function readDarkMode(){
-  try{return localStorage.getItem("iu-baseball-dark-mode")==="true";}
+  try{return sessionStorage.getItem("iu-baseball-dark-mode")==="true";}
   catch(error){console.warn("Could not read saved display settings.",error);return false;}
 }
 
@@ -43,7 +68,7 @@ function applyDarkMode(enabled){
 function toggleDarkMode(){
   const enabled=document.documentElement.dataset.theme!=="dark";
   applyDarkMode(enabled);
-  try{localStorage.setItem("iu-baseball-dark-mode",String(enabled));}
+  try{sessionStorage.setItem("iu-baseball-dark-mode",String(enabled));}
   catch(error){console.warn("Could not save display settings.",error);}
 }
 
@@ -133,7 +158,7 @@ function scheduleSeries(g,index){
       <div><h3>${g[2]} ${g[0]}</h3><p>${g[7]||"Non-Conference"} &middot; ${g[3]}</p></div>
       <span class="series-badge">${venue==="home"?"Home":"Away"}</span>
     </div>
-    <div class="series-dates">${g[5].map((d,dateIndex)=>`<button type="button" onclick="openGamePreview(${index},${dateIndex})"><b>${d}</b><span>${g[4]}</span><small>Preview &rarr;</small></button>`).join("")}</div>
+    <div class="series-dates">${g[5].map((d,dateIndex)=>`<div class="game-date"><button class="game-preview" type="button" onclick="openGamePreview(${index},${dateIndex})"><b>${d}</b><span>${g[4]}</span><small>Preview &rarr;</small></button><button class="game-calendar" type="button" onclick="downloadGameCalendar(${index},${dateIndex})">Add to calendar</button></div>`).join("")}</div>
     <div class="game-actions" aria-label="Game information"><button type="button" onclick="openGameAction('Tickets',${index})">Tickets</button><button type="button" onclick="openGameAction('Watch',${index})">Watch</button><button type="button" onclick="openGameAction('Listen',${index})">Listen</button></div>
   </article>`;
 }
@@ -760,6 +785,80 @@ function openGamePreview(scheduleIndex,dateIndex){
   location.href=`Game.html?series=${scheduleIndex}&game=${dateIndex}`;
 }
 
+function calendarDate(dateLabel){
+  const match=/^([A-Za-z]{3})\s+(\d{1,2})/.exec(dateLabel);
+  const month=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(match?.[1]);
+  if(month<0||!match)throw new Error(`Unsupported schedule date: ${dateLabel}`);
+  return {year:2027,month:month+1,day:Number(match[2])};
+}
+
+function calendarDateStamp({year,month,day}){
+  return `${year}${String(month).padStart(2,"0")}${String(day).padStart(2,"0")}`;
+}
+
+function nextCalendarDate({year,month,day}){
+  const next=new Date(Date.UTC(year,month-1,day+1));
+  return {year:next.getUTCFullYear(),month:next.getUTCMonth()+1,day:next.getUTCDate()};
+}
+
+function calendarUtcStamp(date,time){
+  const match=/^(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?$/i.exec(time.trim());
+  if(!match)return null;
+  const hour=Number(match[1])%12+(match[3].toLowerCase()==="p"?12:0);
+  const minute=Number(match[2]||0);
+  const localAsUtc=Date.UTC(date.year,date.month-1,date.day,hour,minute);
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(localAsUtc));
+  const localParts=Object.fromEntries(parts.filter(part=>part.type!=="literal").map(part=>[part.type,Number(part.value)]));
+  const easternOffset=Date.UTC(localParts.year,localParts.month-1,localParts.day,localParts.hour,localParts.minute)-localAsUtc;
+  return new Date(localAsUtc-easternOffset);
+}
+
+function calendarEvent(scheduleIndex,dateIndex){
+  const game=SCH[scheduleIndex];
+  if(!game)throw new Error(`Schedule entry not found: ${scheduleIndex}`);
+  const dateLabel=game[5][dateIndex];
+  if(!dateLabel)throw new Error(`Game date not found for ${game[0]}.`);
+  const date=calendarDate(dateLabel);
+  const start=calendarUtcStamp(date,game[4]);
+  const end=start?new Date(start.getTime()+3*60*60*1000):null;
+  const summary=`Indiana Baseball ${game[2]==="vs"?"vs.":"at"} ${game[0]}`;
+  const escapeText=value=>String(value).replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
+  const startLine=start?`DTSTART:${start.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"")}`:`DTSTART;VALUE=DATE:${calendarDateStamp(date)}`;
+  const endLine=end?`DTEND:${end.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"")}`:`DTEND;VALUE=DATE:${calendarDateStamp(nextCalendarDate(date))}`;
+  return [
+    "BEGIN:VEVENT",
+    `UID:iu-baseball-2027-${scheduleIndex}-${dateIndex}@iubaseball`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"")}`,
+    startLine,
+    endLine,
+    `SUMMARY:${escapeText(summary)}`,
+    `LOCATION:${escapeText(game[3])}`,
+    `DESCRIPTION:${escapeText(start?`Game time ${game[4]} Eastern.`:"Game time to be announced.")}`,
+    "END:VEVENT"
+  ].join("\r\n");
+}
+
+function downloadCalendarEvents(events,filename){
+  const calendar=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//IU Baseball//Schedule//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",...events,"END:VCALENDAR"].join("\r\n");
+  const url=URL.createObjectURL(new Blob([calendar],{type:"text/calendar;charset=utf-8"}));
+  const link=document.createElement("a");
+  link.href=url;
+  link.download=filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function downloadGameCalendar(scheduleIndex,dateIndex){
+  downloadCalendarEvents([calendarEvent(scheduleIndex,dateIndex)],`iu-baseball-${scheduleIndex}-${dateIndex}.ics`);
+}
+
+function downloadFullCalendar(){
+  const events=SCH.flatMap((game,scheduleIndex)=>game[5].map((_,dateIndex)=>calendarEvent(scheduleIndex,dateIndex)));
+  downloadCalendarEvents(events,"iu-baseball-2027-schedule.ics");
+}
+
 function openBoxScore(id){
   const result=RESULTS.find(game=>String(game.id)===String(id));
   if(!result)throw new Error(`Box score not found: ${id}`);
@@ -802,7 +901,7 @@ const VIEWS = {
   },
   schedule(){
     return `<div class="wrap schedule-page">
-      <div class="schedule-title"><div><span class="schedule-eyebrow">Indiana Hoosiers Baseball</span><h2>2027 Schedule</h2><p>Game times Eastern · Big Ten times to be announced</p></div><div class="schedule-title-actions"><a class="schedule-countdown-link" href="Live-stats.html">Game center &rarr;</a>${printButton("schedule")}</div></div>
+      <div class="schedule-title"><div><span class="schedule-eyebrow">Indiana Hoosiers Baseball</span><h2>2027 Schedule</h2><p>Game times Eastern · Big Ten times to be announced</p></div><div class="schedule-title-actions"><a class="schedule-countdown-link" href="Live-stats.html">Game center &rarr;</a><button class="print-button calendar-download" type="button" onclick="downloadFullCalendar()">Download calendar</button>${printButton("schedule")}</div></div>
       ${countdownBlock(true)}
       ${rotationSection()}
       <div class="schedule-season-heading"><h3>Upcoming Games</h3><span>13 series · February–May</span></div>
@@ -846,15 +945,27 @@ const VIEWS = {
     const gameDate=series?.[5]?.[gameIndex];
     if(!series||!gameDate)return `<div class="wrap"><h2>Game preview not found</h2><a href="Schedule.html">Back to schedule</a></div>`;
     const result=RESULTS.find(item=>item.opponent===series[0]&&item.date===gameDate);
+    const lineupCard=team=>`<article class="lineup-team"><h4>${escapeHtml(team)}</h4><div class="lineup-starter"><span>Starting pitcher</span><strong>Not announced</strong></div><ol aria-label="${escapeHtml(team)} batting order">${Array.from({length:9},(_,index)=>`<li><span>${index+1}</span><b>Lineup spot</b><small>Not announced</small></li>`).join("")}</ol></article>`;
     return `<div class="wrap game-preview-page">
       <a class="back-link" href="Schedule.html">&larr; Back to schedule</a>
-      <div class="page-heading"><h2>Indiana ${series[2]} ${escapeHtml(series[0])}</h2><span class="series-badge">${series[6]?escapeHtml(series[7]):"Non-Conference"}</span></div>
-      <section class="panel game-preview">
-        <p class="date">${escapeHtml(gameDate)} · ${escapeHtml(series[4])}</p>
-        <h3>${series[2]==="vs"?"Indiana vs.":"Indiana at"} ${escapeHtml(series[0])}</h3>
-        <dl><dt>Opponent record</dt><dd>Not available</dd><dt>Probable starters</dt><dd>Not announced</dd><dt>Location</dt><dd>${escapeHtml(series[3])}</dd><dt>Broadcast</dt><dd>Not announced</dd></dl>
-        <p class="note">Preview details will be updated when officially announced.</p>
-        ${result?resultCard(result):`<a class="button-link" href="Live-stats.html">Game center</a>`}
+      <section class="game-preview-card">
+        <header class="game-preview-hero">
+          <div class="game-preview-meta"><span>2027 Indiana Baseball</span><span>${escapeHtml(gameDate)} · ${escapeHtml(series[4])}</span></div>
+          <span class="game-preview-badge">${series[6]?escapeHtml(series[7]):"Non-Conference"}</span>
+          <h2><span>Indiana</span><span class="game-preview-versus">${series[2]==="vs"?"VS":"AT"}</span><span>${escapeHtml(series[0])}</span></h2>
+        </header>
+        <dl class="game-facts">
+          <div><dt>Opponent record</dt><dd>Not available</dd></div>
+          <div><dt>Probable starters</dt><dd>Not announced</dd></div>
+          <div><dt>Location</dt><dd>${escapeHtml(series[3])}</dd></div>
+          <div><dt>Broadcast</dt><dd>Not announced</dd></div>
+        </dl>
+        <section class="game-lineups" aria-labelledby="lineups-title">
+          <div class="game-lineups-heading"><div><span>Game day</span><h3 id="lineups-title">Starting lineups</h3></div><p>Starters will appear here when announced.</p></div>
+          <div class="lineups-grid">${lineupCard("Indiana")}${lineupCard(series[0])}</div>
+        </section>
+        <p class="game-preview-note">Preview details will be updated when officially announced.</p>
+        <div class="game-preview-actions">${result?resultCard(result):`<a class="button-link" href="Live-stats.html">Game center</a>`}</div>
       </section>
     </div>`;
   },
@@ -1058,21 +1169,26 @@ async function loadRosterJson(){
 }
 
 async function initializeSite(){
-  const app=document.getElementById("app");
-  const view=app.dataset.view;
-  setupSharedNavigation();
-  let rosterWarning="";
-  if(location.protocol!=="file:"){
-    try{await loadRosterJson();}catch(error){
-      console.error("Could not load Roster.json; using the built-in roster.",error);
-      rosterWarning=`Roster.json could not be loaded: ${error.message}. The built-in roster is being shown instead.`;
+  const hideLoadingScreen=showLoadingScreen();
+  try{
+    const app=document.getElementById("app");
+    const view=app.dataset.view;
+    setupSharedNavigation();
+    let rosterWarning="";
+    if(location.protocol!=="file:"){
+      try{await loadRosterJson();}catch(error){
+        console.error("Could not load Roster.json; using the built-in roster.",error);
+        rosterWarning=`Roster.json could not be loaded: ${error.message}. The built-in roster is being shown instead.`;
+      }
     }
+    app.innerHTML=(VIEWS[view]||VIEWS.index)();
+    if(rosterWarning)app.insertAdjacentHTML("afterbegin",`<p class="note">${rosterWarning.replace(/</g,"&lt;")}</p>`);
+    if(LIVE_GAME?.status==="live")gameDayScoreBar(LIVE_GAME);
+    if(view==="index"||view==="schedule")startCountdown();
+    if(view==="index"&&NEWS.length>1&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches)startFeaturedTimer();
+  }finally{
+    await hideLoadingScreen();
   }
-  app.innerHTML=(VIEWS[view]||VIEWS.index)();
-  if(rosterWarning)app.insertAdjacentHTML("afterbegin",`<p class="note">${rosterWarning.replace(/</g,"&lt;")}</p>`);
-  if(LIVE_GAME?.status==="live")gameDayScoreBar(LIVE_GAME);
-  if(view==="index"||view==="schedule")startCountdown();
-  if(view==="index"&&NEWS.length>1&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches)startFeaturedTimer();
 }
 
 initializeSite();

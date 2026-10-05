@@ -682,14 +682,38 @@ h2:first-child{
   min-height:76px;
   padding:10px 12px;
   border:0;
-  border-right:1px solid var(--l);
   background:#fff;
   text-align:left;
   cursor:pointer;
 }
 
+.series-dates .game-date{
+  min-width:0;
+  padding:8px;
+  border-right:1px solid var(--l);
+}
+
+.series-dates .game-date:last-child{
+  border-right:0;
+}
+
+.series-dates .game-preview{
+  width:100%;
+  min-height:58px;
+  padding:2px;
+}
+
 .series-dates button:hover{
   background:#fbf8f3;
+}
+
+.series-dates .game-calendar{
+  width:100%;
+  min-height:0;
+  padding:4px 2px 0;
+  color:var(--c);
+  font-size:11px;
+  font-weight:700;
 }
 
 .series-dates button b,
@@ -720,6 +744,280 @@ h2:first-child{
 .game-detail dd,
 .profile-bio dd{
   margin:0;
+}
+
+.game-preview-page{
+  max-width:900px;
+}
+
+.game-preview-page>.back-link{
+  display:inline-block;
+  margin-bottom:18px;
+  color:var(--c);
+  font-weight:700;
+}
+
+.game-preview-card{
+  overflow:hidden;
+  border:1px solid var(--l);
+  border-radius:14px;
+  background:var(--page-bg,#fff);
+  box-shadow:0 12px 34px rgba(30,0,0,.1);
+}
+
+.game-preview-hero{
+  position:relative;
+  padding:28px clamp(20px,5vw,42px) 32px;
+  background:linear-gradient(125deg,#690000 0%,#990000 62%,#ba1414 100%);
+  color:#fff;
+}
+
+.game-preview-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 18px;
+  color:rgba(255,255,255,.8);
+  font-size:13px;
+  font-weight:700;
+}
+
+.game-preview-badge{
+  position:absolute;
+  top:24px;
+  right:clamp(20px,5vw,42px);
+  padding:6px 10px;
+  border:1px solid rgba(255,255,255,.45);
+  border-radius:999px;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.game-preview-hero h2{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px 16px;
+  margin:36px 0 0;
+  padding:0;
+  border:0;
+  color:#fff;
+  font:700 clamp(30px,6vw,52px)/1 Impact,"Arial Narrow",sans-serif;
+}
+
+.game-preview-versus{
+  color:#f7d9bd;
+  font:700 14px/1 Arial,sans-serif;
+  letter-spacing:.12em;
+}
+
+.game-facts{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin:0;
+  padding:clamp(18px,4vw,32px);
+}
+
+.game-facts>div{
+  min-width:0;
+  padding:16px 18px;
+  border:1px solid var(--l);
+  border-radius:9px;
+  background:var(--s);
+}
+
+.game-facts dt{
+  margin:0 0 8px;
+  color:var(--m);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.game-facts dd{
+  margin:0;
+  color:var(--ink);
+  font-size:16px;
+  font-weight:700;
+}
+
+.game-lineups{
+  padding:0 clamp(18px,4vw,32px) 28px;
+}
+
+.game-lineups-heading{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:8px 18px;
+  margin-bottom:14px;
+}
+
+.game-lineups-heading>div>span{
+  color:var(--m);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.game-lineups-heading h3{
+  margin:3px 0 0;
+  color:var(--c);
+  font:700 26px/1.1 Impact,"Arial Narrow",sans-serif;
+}
+
+.game-lineups-heading p{
+  margin:0;
+  color:var(--m);
+  font-size:12px;
+}
+
+.lineups-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.lineup-team{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--l);
+  border-radius:10px;
+  background:var(--page-bg,#fff);
+}
+
+.lineup-team h4{
+  margin:0;
+  padding:13px 16px;
+  background:var(--s);
+  color:var(--c);
+  font:700 20px/1.1 Impact,"Arial Narrow",sans-serif;
+}
+
+.lineup-starter{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:6px 12px;
+  padding:12px 16px;
+  border-bottom:2px solid var(--c);
+  background:color-mix(in srgb,var(--c) 6%,var(--page-bg,#fff));
+}
+
+.lineup-starter span{
+  color:var(--m);
+  font-size:12px;
+  font-weight:700;
+}
+
+.lineup-starter strong{
+  font-size:13px;
+}
+
+.lineup-team ol{
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+
+.lineup-team li{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:6px 12px;
+  border-bottom:1px solid var(--l);
+}
+
+.lineup-team li:last-child{
+  border-bottom:0;
+}
+
+.lineup-team li>span{
+  display:grid;
+  width:24px;
+  height:24px;
+  place-items:center;
+  border-radius:50%;
+  background:var(--s);
+  color:var(--c);
+  font-size:11px;
+  font-weight:800;
+}
+
+.lineup-team li b{
+  overflow:hidden;
+  font-size:12px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.lineup-team li small{
+  color:var(--m);
+  font-size:10px;
+}
+
+.game-preview-note{
+  margin:0 32px 22px;
+  color:var(--m);
+  font-size:13px;
+}
+
+.game-preview-actions{
+  padding:0 clamp(18px,4vw,32px) 28px;
+}
+
+html[data-theme="dark"] .game-preview-card{
+  background:#222;
+  box-shadow:0 12px 34px rgba(0,0,0,.3);
+}
+
+html[data-theme="dark"] .game-facts>div{
+  background:#292929;
+}
+
+html[data-theme="dark"] .lineup-team{
+  background:#222;
+}
+
+html[data-theme="dark"] .lineup-starter{
+  background:color-mix(in srgb,var(--c) 14%,#222);
+}
+
+@media(max-width:540px){
+  .game-preview-badge{
+    position:static;
+    display:inline-block;
+    margin-top:16px;
+  }
+
+  .game-preview-hero h2{
+    margin-top:22px;
+  }
+
+  .game-facts{
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+
+  .game-facts>div{
+    padding:13px 15px;
+  }
+
+  .lineups-grid{
+    grid-template-columns:1fr;
+  }
+
+  .game-preview-note{
+    margin:0 18px 20px;
+  }
 }
 
 .button-link{
@@ -1498,8 +1796,12 @@ table.linescore th:first-child{
   .schedule-page .series-dates button{
     width:100%;
     min-width:0;
-    min-height:78px;
-    padding:10px;
+    padding:2px;
+    border-right:0;
+  }
+
+  .schedule-page .series-dates .game-date{
+    padding:8px;
     border-right:1px solid var(--l);
   }
 
@@ -1802,6 +2104,133 @@ table.linescore th:first-child{
 
 body{
   background:var(--page-bg,#fff);
+}
+
+.loading-screen{
+  position:fixed;
+  z-index:1000;
+  inset:0;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:radial-gradient(ellipse at center,#4b0000 0%,#190000 74%);
+  color:#fff;
+  text-align:center;
+  opacity:1;
+  transition:opacity .45s ease;
+}
+
+.loading-screen.is-leaving{
+  opacity:0;
+  pointer-events:none;
+}
+
+.loading-content{
+  width:min(220px,70vw);
+}
+
+.loading-mark{
+  position:relative;
+  width:min(156px,52vw);
+  aspect-ratio:1;
+  margin:0 auto 20px;
+  overflow:hidden;
+  border:4px solid rgba(255,255,255,.88);
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+  animation:loading-mark-enter .65s cubic-bezier(.2,.8,.25,1) both;
+}
+
+.loading-mark img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.loading-mark:after{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:13px;
+  height:160%;
+  content:"";
+  background:linear-gradient(90deg,transparent,#fff 35%,#fff 65%,transparent);
+  filter:drop-shadow(0 0 8px rgba(255,255,255,.7));
+  transform:translate(-50%,-50%) rotate(38deg) translateX(-150px);
+  animation:loading-logo-slash .85s .38s cubic-bezier(.5,0,.25,1) both;
+}
+
+.loading-team,
+.loading-sport{
+  margin:0;
+  font-family:Impact,"Arial Narrow",sans-serif;
+  line-height:1;
+}
+
+.loading-team{
+  font-size:17px;
+  letter-spacing:.28em;
+  animation:loading-text-enter .5s .2s both;
+}
+
+.loading-sport{
+  margin-top:7px;
+  color:#f7f0e4;
+  font-size:34px;
+  letter-spacing:.045em;
+  animation:loading-text-enter .5s .3s both;
+}
+
+.loading-progress{
+  height:2px;
+  margin-top:25px;
+  overflow:hidden;
+  background:rgba(255,255,255,.22);
+}
+
+.loading-progress span{
+  display:block;
+  width:100%;
+  height:100%;
+  background:#f7f0e4;
+  transform:scaleX(0);
+  transform-origin:left;
+  animation:loading-progress-fill 1.05s .1s ease-out forwards;
+}
+
+@keyframes loading-mark-enter{
+  from{opacity:0;transform:scale(.78) rotate(-8deg)}
+  to{opacity:1;transform:scale(1) rotate(0)}
+}
+
+@keyframes loading-logo-slash{
+  0%{transform:translate(-50%,-50%) rotate(38deg) translateX(-150px)}
+  100%{transform:translate(-50%,-50%) rotate(38deg) translateX(150px)}
+}
+
+@keyframes loading-text-enter{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+@keyframes loading-progress-fill{
+  to{transform:scaleX(1)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .loading-screen,
+  .loading-mark,
+  .loading-mark:after,
+  .loading-team,
+  .loading-sport,
+  .loading-progress span{
+    animation:none;
+    transition:none;
+  }
+
+  .loading-progress span{
+    transform:scaleX(1);
+  }
 }
 
 .theme-toggle,
@@ -2236,6 +2665,45 @@ html[data-theme="dark"] textarea{
 html[data-theme="dark"] .series-dates button,
 html[data-theme="dark"] .game-actions button{
   background:#292929;
+  color:#f2b5b5;
+}
+
+html[data-theme="dark"] .schedule-page .schedule-filters{
+  background:#222;
+}
+
+html[data-theme="dark"] .schedule-page .schedule-filters button{
+  background:#292929;
+  color:var(--ink);
+  border-color:var(--l);
+}
+
+html[data-theme="dark"] .schedule-page .schedule-filters button:hover,
+html[data-theme="dark"] .schedule-page .schedule-filters button.on{
+  background:var(--c);
+  border-color:var(--c);
+  color:#fff;
+}
+
+html[data-theme="dark"] .schedule-page .series-head{
+  background:linear-gradient(110deg,#292929 0%,#222 100%);
+}
+
+html[data-theme="dark"] .schedule-page .series-dates button{
+  background:#292929;
+  color:var(--ink);
+}
+
+html[data-theme="dark"] .schedule-page .series-dates .game-calendar{
+  color:#f2b5b5;
+}
+
+html[data-theme="dark"] .schedule-page .series-dates button:hover{
+  background:#353535;
+}
+
+html[data-theme="dark"] .schedule-page .series-dates button small,
+html[data-theme="dark"] .schedule-page .game-actions button{
   color:#f2b5b5;
 }
 
